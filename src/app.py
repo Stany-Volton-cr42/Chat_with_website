@@ -3,6 +3,9 @@
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.document_loaders import WebBaseLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
 
 def get_response(user_query):
     return "First, please build me"
@@ -11,8 +14,16 @@ def get_response(user_query):
 # and returns the loaded documents.
 def get_vectorstore_from_url(url):
     loader = WebBaseLoader(url)
-    documents = loader.load()
-    return documents
+    document = loader.load()
+
+    # Split the document into chunks using the RecursiveCharacterTextSplitter
+    text_splitter = RecursiveCharacterTextSplitter()
+    document_chunks = text_splitter.split_documents(document)
+
+    # create a vectorstore from the chunks
+    vectorstore = Chroma.from_documents(document_chunks,OpenAIEmbeddings())
+
+    return vectorstore
 
 
 # For the interface
@@ -38,9 +49,7 @@ if website_URL is None or website_URL == "":
 # Load documents from the provided URL using the WebBaseLoader
 
 else:
-    documents = get_vectorstore_from_url(website_URL)
-    with st.sidebar:
-        st.write(documents)
+    document_chunks = get_vectorstore_from_url(website_URL)
 
     #   CHAT HISTORY / AI response to User Input
     user_query = st.chat_input("Type your message here... ")
